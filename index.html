@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BMO Portfolyo</title>
+  <meta name="description" content="BMO temalı interaktif portfolyo — bir kaset seç, BMO'ya tak ve projeyi keşfet.">
+  <meta name="theme-color" content="#1a0f08">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='4' width='48' height='56' rx='8' fill='%2363c4b0'/%3E%3Crect x='14' y='10' width='36' height='26' rx='4' fill='%23c3f0c4'/%3E%3Ccircle cx='25' cy='21' r='2.5'/%3E%3Ccircle cx='39' cy='21' r='2.5'/%3E%3Cpath d='M26 27q6 5 12 0' stroke='%23000' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='44' cy='48' r='5' fill='%23ec3f6b'/%3E%3Cpath d='M16 46h10M21 41v10' stroke='%23f4d23c' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;600;800&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D sahne: ağaç ev, kütük masa, BMO ve kasetler -->
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="dust" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- Klavye / ekran okuyucu için kaset listesi (görsel olarak gizli) -->
+  <nav id="cart-list" class="sr-only" aria-label="Projeler"></nav>
+
+  <header class="hud hud-top">
+    <div class="brand">
+      <div class="brand-name" id="brand-name">PORTFOLYO</div>
+      <div class="brand-role" id="brand-role"></div>
+    </div>
+    <nav class="top-actions">
+      <form id="gh-form" class="gh-form" autocomplete="off">
+        <label class="sr-only" for="gh-input">GitHub kullanıcı adı</label>
+        <span class="gh-at" aria-hidden="true">@</span>
+        <input id="gh-input" name="user" type="text" placeholder="github kullanıcı adı" spellcheck="false" autocapitalize="off" maxlength="39">
+        <button class="gh-go" type="submit">BAĞLAN</button>
+        <button id="gh-clear" class="gh-clear" type="button" title="Bağlantıyı kaldır" aria-label="Bağlantıyı kaldır" hidden>✕</button>
+      </form>
+      <a id="gh-profile" class="chip" href="https://github.com" target="_blank" rel="noopener" hidden>PROFİL</a>
+      <button id="mute" class="chip" type="button" aria-pressed="false">SES: AÇIK</button>
+    </nav>
+  </header>
+
+  <section class="hud dialog" aria-live="polite">
+    <div class="dlg-tag">BMO</div>
+    <p class="dlg-text" id="dlg-text"></p>
+    <p class="dlg-hint" id="dlg-hint"></p>
+  </section>
+
+  <!-- BMO ekranı (kamera ekrana yaklaştıktan sonra açılır) -->
+  <div id="screen-ui" hidden role="dialog" aria-modal="true" aria-labelledby="d-title">
+    <div class="scr-boot" aria-hidden="true">
+      <svg class="boot-face" viewBox="0 0 120 64">
+        <ellipse cx="30" cy="22" rx="6" ry="8.5"/>
+        <ellipse cx="90" cy="22" rx="6" ry="8.5"/>
+        <path d="M44 42 Q60 58 76 42" fill="none" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <div class="boot-text">KASET OKUNUYOR</div>
+      <div class="boot-bar">
+        <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span>
+        <span style="--i:4"></span><span style="--i:5"></span><span style="--i:6"></span><span style="--i:7"></span>
+        <span style="--i:8"></span><span style="--i:9"></span><span style="--i:10"></span><span style="--i:11"></span>
+      </div>
+    </div>
+
+    <div class="scr-detail">
+      <div class="d-head">
+        <span id="d-slot">KASET 01</span>
+        <span id="d-lang"></span>
+      </div>
+      <div class="d-grid">
+        <figure class="d-preview">
+          <div class="d-fallback" id="d-fallback"><span id="d-fallback-text"></span></div>
+          <img id="d-img" alt="" decoding="async">
+        </figure>
+        <div class="d-info">
+          <h2 id="d-title"></h2>
+          <p id="d-desc"></p>
+          <ul class="d-stats" id="d-stats"></ul>
+          <div class="d-topics" id="d-topics"></div>
+          <div class="d-actions">
+            <a class="btn btn-go" id="btn-go" target="_blank" rel="noopener">GITHUB'A GİT ▶</a>
+            <a class="btn btn-demo" id="btn-demo" target="_blank" rel="noopener" hidden>CANLI DEMO</a>
+            <button class="btn btn-back" id="btn-back" type="button">◀ GERİ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scr-fx" aria-hidden="true"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
